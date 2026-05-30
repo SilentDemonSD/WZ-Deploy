@@ -20,6 +20,7 @@ langcodes
 language-data
 jinja2
 lxml
+motor
 natsort
 par2cmdline-turbo
 pillow
