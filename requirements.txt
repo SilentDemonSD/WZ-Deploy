@@ -36,6 +36,6 @@ telegraph
 tenacity
 urllib3
 uvicorn
-uvloop
+uvloop>=0.22
 xattr
 yt-dlp[default,curl-cffi]
