@@ -11,8 +11,7 @@ from logging import (
     ERROR,
 )
 from os import path, remove, environ
-import asyncio
-from pymongo.asynchronous import AsyncMongoClient
+from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from subprocess import run as srun, call as scall
 
@@ -49,28 +48,21 @@ if not BOT_TOKEN:
 
 BOT_ID = BOT_TOKEN.split(":", 1)[0]
 
-async def fetch_config_from_db():
-    """Fetch configuration from MongoDB asynchronously."""
-    database_url = config_file.get("DATABASE_URL", "").strip()
-    if not database_url:
-        return
-    
+if DATABASE_URL := config_file.get("DATABASE_URL", "").strip():
     try:
-        async with AsyncMongoClient(database_url, server_api=ServerApi("1")) as conn:
-            db = conn.wzmlx
-            old_config = await db.settings.deployConfig.find_one({"_id": BOT_ID}, {"_id": 0})
-            config_dict = await db.settings.config.find_one({"_id": BOT_ID})
-            if (
-                old_config is not None and old_config == config_file or old_config is None
-            ) and config_dict is not None:
-                config_file["UPSTREAM_REPO"] = config_dict["UPSTREAM_REPO"]
-                config_file["UPSTREAM_BRANCH"] = config_dict.get("UPSTREAM_BRANCH", "wzv3")
-                config_file["UPDATE_PKGS"] = config_dict.get("UPDATE_PKGS", "True")
+        conn = MongoClient(DATABASE_URL, server_api=ServerApi("1"))
+        db = conn.wzmlx
+        old_config = db.settings.deployConfig.find_one({"_id": BOT_ID}, {"_id": 0})
+        config_dict = db.settings.config.find_one({"_id": BOT_ID})
+        if (
+            old_config is not None and old_config == config_file or old_config is None
+        ) and config_dict is not None:
+            config_file["UPSTREAM_REPO"] = config_dict["UPSTREAM_REPO"]
+            config_file["UPSTREAM_BRANCH"] = config_dict.get("UPSTREAM_BRANCH", "wzv3")
+            config_file["UPDATE_PKGS"] = config_dict.get("UPDATE_PKGS", "True")
+        conn.close()
     except Exception as e:
         log_error(f"Database ERROR: {e}")
-
-if DATABASE_URL := config_file.get("DATABASE_URL", "").strip():
-    asyncio.run(fetch_config_from_db())
 
 UPSTREAM_REPO = config_file.get("UPSTREAM_REPO", "").strip()
 UPSTREAM_BRANCH = config_file.get("UPSTREAM_BRANCH", "").strip() or "wzv3"
